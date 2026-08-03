@@ -3,11 +3,15 @@ package com.project.MediFlow.Service.Impl;
 import com.project.MediFlow.Dtos.PatientRequest;
 import com.project.MediFlow.Dtos.PatientResponse;
 import com.project.MediFlow.Exception.DuplicateResourceException;
+import com.project.MediFlow.Exception.PatientNotFoundException;
 import com.project.MediFlow.Repository.PatientRepository;
 import com.project.MediFlow.Service.PatientService;
 import com.project.MediFlow.entities.Patient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -47,5 +51,46 @@ public class PatientImpl implements PatientService {
                 .email(savedPatient.getEmail())
                 .address(savedPatient.getAddress())
                 .build();
+    }
+
+    @Override
+    public List<PatientResponse> getAllPatients() {
+
+        List<Patient> patients = patientRepository.findAll();
+
+        return patients.stream()
+                .map(patient -> PatientResponse.builder()
+                        .id(patient.getId())
+                        .firstName(patient.getFirstName())
+                        .lastName(patient.getLastName())
+                        .age(patient.getAge())
+                        .gender(patient.getGender())
+                        .phone(patient.getPhone())
+                        .email(patient.getEmail())
+                        .address(patient.getAddress())
+                        .build()
+                )
+                .toList();
+    }
+
+    @Override
+    public Optional<PatientResponse> getPatientById(Long id) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() ->
+                        new PatientNotFoundException(
+                                "Patient not found with id: " + id
+                        )
+                );
+
+        return Optional.ofNullable(PatientResponse.builder()
+                .id(patient.getId())
+                .firstName(patient.getFirstName())
+                .lastName(patient.getLastName())
+                .age(patient.getAge())
+                .gender(patient.getGender())
+                .phone(patient.getPhone())
+                .email(patient.getEmail())
+                .address(patient.getAddress())
+                .build());
     }
 }
