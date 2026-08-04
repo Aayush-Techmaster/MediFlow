@@ -5,10 +5,8 @@ import com.project.MediFlow.Dtos.PatientRequest;
 import com.project.MediFlow.Dtos.PatientResponse;
 import com.project.MediFlow.Repository.PatientRepository;
 import com.project.MediFlow.Service.PatientService;
-import com.project.MediFlow.entities.Patient;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,6 +42,27 @@ public class PatientController {
     public ResponseEntity< Optional<PatientResponse>> getPatientById(@PathVariable Long id){
         Optional<PatientResponse>optionalPatient = patientService.getPatientById(id);
         return ResponseEntity.ok(optionalPatient);
+    }
+
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PatientResponse> updatePatient(
+            @PathVariable Long id,
+            @Valid @RequestBody PatientRequest request) {
+
+        PatientResponse updatedPatient =
+                patientService.updatePatient(id, request);
+
+        return ResponseEntity.ok(updatedPatient);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePatient(
+            @PathVariable Long id) {
+
+        patientService.deletePatient(id);
+
+        return ResponseEntity.noContent().build();
     }
 
 

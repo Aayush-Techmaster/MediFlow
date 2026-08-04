@@ -93,4 +93,62 @@ public class PatientImpl implements PatientService {
                 .address(patient.getAddress())
                 .build());
     }
+
+
+    @Override
+    public PatientResponse updatePatient(Long id, PatientRequest request) {
+
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() ->
+                        new PatientNotFoundException(
+                                "Patient not found with id: " + id
+                        )
+                );
+
+        if (patientRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
+            throw new DuplicateResourceException(
+                    "Email already exists."
+            );
+        }
+
+        if (patientRepository.existsByPhoneAndIdNot(request.getPhone(), id)) {
+            throw new DuplicateResourceException(
+                    "Phone number already exists."
+            );
+        }
+
+        patient.setFirstName(request.getFirstName());
+        patient.setLastName(request.getLastName());
+        patient.setAge(request.getAge());
+        patient.setGender(request.getGender());
+        patient.setPhone(request.getPhone());
+        patient.setEmail(request.getEmail());
+        patient.setAddress(request.getAddress());
+
+        Patient updatedPatient = patientRepository.save(patient);
+
+        return PatientResponse.builder()
+                .id(updatedPatient.getId())
+                .firstName(updatedPatient.getFirstName())
+                .lastName(updatedPatient.getLastName())
+                .age(updatedPatient.getAge())
+                .gender(updatedPatient.getGender())
+                .phone(updatedPatient.getPhone())
+                .email(updatedPatient.getEmail())
+                .address(updatedPatient.getAddress())
+                .build();
+    }
+
+    @Override
+    public void deletePatient(Long id) {
+
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() ->
+                        new PatientNotFoundException(
+                                "Patient not found with id: " + id
+                        )
+                );
+
+        patientRepository.delete(patient);
+    }
 }
