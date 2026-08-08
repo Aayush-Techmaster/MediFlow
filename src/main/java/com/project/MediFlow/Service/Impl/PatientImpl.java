@@ -4,6 +4,8 @@ import com.project.MediFlow.Dtos.PatientRequest;
 import com.project.MediFlow.Dtos.PatientResponse;
 import com.project.MediFlow.Exception.DuplicateResourceException;
 import com.project.MediFlow.Exception.PatientNotFoundException;
+import com.project.MediFlow.RabbitMQ.Event.PatientRegisteredEvent;
+import com.project.MediFlow.RabbitMQ.Producer.PatientProducer;
 import com.project.MediFlow.Repository.PatientRepository;
 import com.project.MediFlow.Service.PatientService;
 import com.project.MediFlow.entities.Patient;
@@ -17,6 +19,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PatientImpl implements PatientService {
     private final PatientRepository patientRepository;
+    private final PatientProducer patientProducer;
+
 
     @Override
     public PatientResponse createPatient(PatientRequest request) {
@@ -40,6 +44,14 @@ public class PatientImpl implements PatientService {
                 .build();
 
         Patient savedPatient = patientRepository.save(patient);
+
+        PatientRegisteredEvent event = new PatientRegisteredEvent(
+                savedPatient.getId(),
+                savedPatient.getFirstName(),
+                savedPatient.getEmail()
+        );
+
+        patientProducer.publishPatientRegisteredEvent(event);
 
         return PatientResponse.builder()
                 .id(savedPatient.getId())
