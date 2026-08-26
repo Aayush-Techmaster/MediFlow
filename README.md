@@ -200,4 +200,4 @@ The appointment API will not need to wait for the notification to be sent before
 
 🚧 **Under active development**
 
-The Patient module is currently being developed. RabbitMQ, appointment management, Docker support, and authentication will be added in upcoming stages.
+Currently working On Appointment feature .
