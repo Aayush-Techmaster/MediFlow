@@ -1,14 +1,13 @@
 package com.project.MediFlow.Exception;
 
-import com.project.MediFlow.Dtos.ErrorResponse;
-import jakarta.servlet.http.HttpServletRequest;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -107,6 +106,20 @@ public class GlobalExceptionHandler {
 
         response.put("status", 400);
         response.put("message", ex.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put("status", 409);
+        response.put("message", "Doctor is already booked for this time");
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)

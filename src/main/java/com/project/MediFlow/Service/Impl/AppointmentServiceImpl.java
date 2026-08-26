@@ -12,6 +12,7 @@ import com.project.MediFlow.Service.AppointmentService;
 import com.project.MediFlow.entities.Appointment;
 import com.project.MediFlow.entities.Doctor;
 import com.project.MediFlow.entities.Patient;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -34,6 +35,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         this.doctorRepository = doctorRepository;
     }
 
+    @Transactional
     @Override
     public AppointmentResponse createAppointment(
             AppointmentRequest request) {

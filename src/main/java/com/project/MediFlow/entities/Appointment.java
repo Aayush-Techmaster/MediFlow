@@ -3,16 +3,28 @@ package com.project.MediFlow.entities;
 import com.project.MediFlow.Enum.AppointmentStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.validator.constraints.UniqueElements;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "appointments")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(
+        name = "appointments",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_doctor_appointment_time",
+                        columnNames = {
+                                "doctor_id",
+                                "appointment_date_time"
+                        }
+                )
+        }
+)
 public class Appointment {
 
     @Id
