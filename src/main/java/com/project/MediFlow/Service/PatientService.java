@@ -12,12 +12,14 @@ import java.util.Optional;
 
 public interface PatientService {
     PatientResponse createPatient(PatientRequest request);
-     List<PatientResponse> getAllPatients();
-     Optional<PatientResponse> getPatientById(Long id);
 
-     PatientResponse updatePatient(Long id, PatientRequest request);
+    List<PatientResponse> getAllPatients();
 
-     void deletePatient(Long id);
+    Optional<PatientResponse> getPatientById(Long id);
+
+    PatientResponse updatePatient(Long id, PatientRequest request);
+
+    void deletePatient(Long id);
 }
 
 
