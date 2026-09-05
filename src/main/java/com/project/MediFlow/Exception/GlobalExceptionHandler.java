@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
 
 
 
-    @ExceptionHandler
+    @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<Map<String,Object>>handleDuplicateResourceException(
             DuplicateResourceException ex
     ){
