@@ -120,7 +120,7 @@ public class GlobalExceptionHandler {
         response.put("message", "Doctor is already booked for this time");
 
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
+                .status(HttpStatus.CONFLICT)
                 .body(response);
     }
 

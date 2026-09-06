@@ -1,0 +1,10 @@
+package com.project.MediFlow.Enum;
+
+public enum AppointmentEventType {
+
+    APPOINTMENT_CREATED,
+    APPOINTMENT_CONFIRMED,
+    APPOINTMENT_RESCHEDULED,
+    APPOINTMENT_CANCELLED,
+    APPOINTMENT_COMPLETED
+}

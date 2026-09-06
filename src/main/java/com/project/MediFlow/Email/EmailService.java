@@ -4,6 +4,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 public class EmailService {
 
@@ -35,4 +37,23 @@ public class EmailService {
                 "✅ Email sent successfully to: " + to
         );
     }
+
+    public void sendAppointmentCreatedEmail(
+            String email,
+            String patientName,
+            String doctorName,
+            LocalDateTime appointmentDateTime) {
+
+        // send email
+    }
+
+    public void sendAppointmentConfirmedEmail(
+            String email,
+            String patientName,
+            String doctorName,
+            LocalDateTime appointmentDateTime) {
+
+        // send email
+    }
+
 }

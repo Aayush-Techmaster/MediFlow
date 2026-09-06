@@ -2,9 +2,12 @@ package com.project.MediFlow.Service.Impl;
 
 import com.project.MediFlow.Dtos.AppointmentRequest;
 import com.project.MediFlow.Dtos.AppointmentResponse;
+import com.project.MediFlow.Enum.AppointmentEventType;
 import com.project.MediFlow.Enum.AppointmentStatus;
 import com.project.MediFlow.Exception.ResourceNotFoundException;
 import com.project.MediFlow.Exception.DuplicateResourceException;
+import com.project.MediFlow.RabbitMQ.Event.AppointmentEvent;
+import com.project.MediFlow.RabbitMQ.Producer.AppointmentProducer;
 import com.project.MediFlow.Repository.AppointmentRepository;
 import com.project.MediFlow.Repository.DoctorRepository;
 import com.project.MediFlow.Repository.PatientRepository;
@@ -24,15 +27,17 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final AppointmentProducer appointmentProducer;
 
     public AppointmentServiceImpl(
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
-            DoctorRepository doctorRepository) {
+            DoctorRepository doctorRepository, AppointmentProducer appointmentProducer) {
 
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
+        this.appointmentProducer = appointmentProducer;
     }
 
     @Transactional
@@ -84,11 +89,24 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
 
+        AppointmentEvent event = new AppointmentEvent(
+                AppointmentEventType.APPOINTMENT_CREATED,
+                savedAppointment.getId(),
+                patient.getFirstName(),
+                patient.getEmail(),
+                doctor.getFirstName(),
+                savedAppointment.getAppointmentDateTime(),
+                null,
+                null
+        );
+
+        appointmentProducer.publishAppointmentEvent(event);
         // 5. Return response
         return mapToResponse(savedAppointment, patient, doctor);
     }
 
-    private AppointmentResponse mapToResponse(
+    @Transactional
+    public AppointmentResponse mapToResponse(
             Appointment appointment,
             Patient patient,
             Doctor doctor) {
@@ -116,6 +134,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .build();
     }
 
+    @Transactional
     @Override
     public List<AppointmentResponse> getAllAppointments() {
 
@@ -150,7 +169,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .toList();
     }
 
-
+    @Transactional
     @Override
     public AppointmentResponse getAppointmentById(Long id) {
 
@@ -185,6 +204,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 doctor
         );
     }
+    @Transactional
 
     @Override
     public AppointmentResponse cancelAppointment(Long id) {
@@ -231,12 +251,26 @@ public class AppointmentServiceImpl implements AppointmentService {
                         )
                 );
 
+        AppointmentEvent event = new AppointmentEvent(
+                AppointmentEventType.APPOINTMENT_CANCELLED,
+                savedAppointment.getId(),
+                patient.getFirstName() + " " + patient.getLastName(),
+                patient.getEmail(),
+                doctor.getFirstName() + " " + doctor.getLastName(),
+                savedAppointment.getAppointmentDateTime(),
+                null,
+                null
+        );
+
+        // Publish cancellation event
+        appointmentProducer.publishAppointmentEvent(event);
         return mapToResponse(
                 savedAppointment,
                 patient,
                 doctor
         );
     }
+    @Transactional
 
     @Override
     public AppointmentResponse confirmAppointment(Long id) {
@@ -288,13 +322,26 @@ public class AppointmentServiceImpl implements AppointmentService {
                                         + savedAppointment.getDoctorId()
                         )
                 );
+        AppointmentEvent event = new AppointmentEvent(
+                AppointmentEventType.APPOINTMENT_CONFIRMED,
+                savedAppointment.getId(),
+                patient.getFirstName() + " " + patient.getLastName(),
+                patient.getEmail(),
+                doctor.getFirstName() + " " + doctor.getLastName(),
+                savedAppointment.getAppointmentDateTime(),
+                null,
+                null
+        );
 
+        // Publish event to RabbitMQ
+        appointmentProducer.publishAppointmentEvent(event);
         return mapToResponse(
                 savedAppointment,
                 patient,
                 doctor
         );
     }
+    @Transactional
 
     @Override
     public AppointmentResponse completeAppointment(Long id) {
@@ -347,6 +394,19 @@ public class AppointmentServiceImpl implements AppointmentService {
                         )
                 );
 
+        AppointmentEvent event = new AppointmentEvent(
+                AppointmentEventType.APPOINTMENT_COMPLETED,
+                savedAppointment.getId(),
+                patient.getFirstName() + " " + patient.getLastName(),
+                patient.getEmail(),
+                doctor.getFirstName() + " " + doctor.getLastName(),
+                savedAppointment.getAppointmentDateTime(),
+                null,
+                null
+        );
+
+        // Publish completion event
+        appointmentProducer.publishAppointmentEvent(event);
         return mapToResponse(
                 savedAppointment,
                 patient,
@@ -354,6 +414,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         );
     }
 
+    @Transactional
     @Override
     public AppointmentResponse rescheduleAppointment(
             Long id,
@@ -403,6 +464,10 @@ public class AppointmentServiceImpl implements AppointmentService {
             );
         }
 
+        // Store the old appointment time BEFORE changing it
+        LocalDateTime oldAppointmentDateTime =
+                appointment.getAppointmentDateTime();
+
         appointment.setAppointmentDateTime(newAppointmentDateTime);
 
         Appointment savedAppointment =
@@ -425,6 +490,20 @@ public class AppointmentServiceImpl implements AppointmentService {
                                         + savedAppointment.getDoctorId()
                         )
                 );
+
+        AppointmentEvent event = new AppointmentEvent(
+                AppointmentEventType.APPOINTMENT_RESCHEDULED,
+                savedAppointment.getId(),
+                patient.getFirstName() + " " + patient.getLastName(),
+                patient.getEmail(),
+                doctor.getFirstName() + " " + doctor.getLastName(),
+                savedAppointment.getAppointmentDateTime(),
+                oldAppointmentDateTime,
+                newAppointmentDateTime
+        );
+
+        // Publish reschedule event
+        appointmentProducer.publishAppointmentEvent(event);
 
         return mapToResponse(
                 savedAppointment,

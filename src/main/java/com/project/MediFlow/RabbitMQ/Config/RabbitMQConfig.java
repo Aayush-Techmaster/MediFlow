@@ -16,6 +16,15 @@ public class RabbitMQConfig {
     public static final String EXCHANGE_NAME = "patient.exchange";
     public static final String ROUTING_KEY = "patient.registered";
 
+    public static final String APPOINTMENT_QUEUE_NAME =
+            "appointment.notification.queue";
+
+    public static final String APPOINTMENT_EXCHANGE_NAME =
+            "appointment.exchange";
+
+    public static final String APPOINTMENT_ROUTING_KEY =
+            "appointment.notification";
+
     @Bean
     public MessageConverter messageConverter() {
         return new JacksonJsonMessageConverter();
@@ -39,5 +48,27 @@ public class RabbitMQConfig {
                 .bind(patientQueue)
                 .to(patientExchange)
                 .with(ROUTING_KEY);
+    }
+
+
+    @Bean
+    public Queue appointmentNotificationQueue() {
+        return new Queue(APPOINTMENT_QUEUE_NAME);
+    }
+
+    @Bean
+    public DirectExchange appointmentExchange() {
+        return new DirectExchange(APPOINTMENT_EXCHANGE_NAME);
+    }
+
+    @Bean
+    public Binding appointmentNotificationBinding(
+            Queue appointmentNotificationQueue,
+            DirectExchange appointmentExchange) {
+
+        return BindingBuilder
+                .bind(appointmentNotificationQueue)
+                .to(appointmentExchange)
+                .with(APPOINTMENT_ROUTING_KEY);
     }
 }

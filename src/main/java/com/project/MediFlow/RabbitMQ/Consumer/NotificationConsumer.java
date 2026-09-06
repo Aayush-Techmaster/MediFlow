@@ -1,6 +1,7 @@
 package com.project.MediFlow.RabbitMQ.Consumer;
 
 import com.project.MediFlow.Email.EmailService;
+import com.project.MediFlow.RabbitMQ.Event.AppointmentEvent;
 import com.project.MediFlow.RabbitMQ.Event.PatientRegisteredEvent;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
