@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,10 +20,8 @@ public class PatientImpl implements PatientService {
     private final PatientRepository patientRepository;
     private final PatientProducer patientProducer;
 
-
     @Override
     public PatientResponse createPatient(PatientRequest request) {
-
         if (patientRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already exists.");
         }
@@ -67,7 +64,6 @@ public class PatientImpl implements PatientService {
 
     @Override
     public List<PatientResponse> getAllPatients() {
-
         List<Patient> patients = patientRepository.findAll();
 
         return patients.stream()
@@ -80,21 +76,18 @@ public class PatientImpl implements PatientService {
                         .phone(patient.getPhone())
                         .email(patient.getEmail())
                         .address(patient.getAddress())
-                        .build()
-                )
+                        .build())
                 .toList();
     }
 
     @Override
-    public Optional<PatientResponse> getPatientById(Long id) {
+    public PatientResponse getPatientById(Long id) {
         Patient patient = patientRepository.findById(id)
-                .orElseThrow(() ->
-                        new PatientNotFoundException(
-                                "Patient not found with id: " + id
-                        )
-                );
+                .orElseThrow(() -> new PatientNotFoundException(
+                        "Patient not found with id: " + id
+                ));
 
-        return Optional.ofNullable(PatientResponse.builder()
+        return PatientResponse.builder()
                 .id(patient.getId())
                 .firstName(patient.getFirstName())
                 .lastName(patient.getLastName())
@@ -103,30 +96,22 @@ public class PatientImpl implements PatientService {
                 .phone(patient.getPhone())
                 .email(patient.getEmail())
                 .address(patient.getAddress())
-                .build());
+                .build();
     }
-
 
     @Override
     public PatientResponse updatePatient(Long id, PatientRequest request) {
-
         Patient patient = patientRepository.findById(id)
-                .orElseThrow(() ->
-                        new PatientNotFoundException(
-                                "Patient not found with id: " + id
-                        )
-                );
+                .orElseThrow(() -> new PatientNotFoundException(
+                        "Patient not found with id: " + id
+                ));
 
         if (patientRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
-            throw new DuplicateResourceException(
-                    "Email already exists."
-            );
+            throw new DuplicateResourceException("Email already exists.");
         }
 
         if (patientRepository.existsByPhoneAndIdNot(request.getPhone(), id)) {
-            throw new DuplicateResourceException(
-                    "Phone number already exists."
-            );
+            throw new DuplicateResourceException("Phone number already exists.");
         }
 
         patient.setFirstName(request.getFirstName());
@@ -153,13 +138,10 @@ public class PatientImpl implements PatientService {
 
     @Override
     public void deletePatient(Long id) {
-
         Patient patient = patientRepository.findById(id)
-                .orElseThrow(() ->
-                        new PatientNotFoundException(
-                                "Patient not found with id: " + id
-                        )
-                );
+                .orElseThrow(() -> new PatientNotFoundException(
+                        "Patient not found with id: " + id
+                ));
 
         patientRepository.delete(patient);
     }
