@@ -4,6 +4,7 @@ import com.project.MediFlow.Dtos.DoctorRequest;
 import com.project.MediFlow.Dtos.DoctorResponse;
 import com.project.MediFlow.Service.DoctorService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ public class DoctorController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DoctorResponse> createDoctor(
             @Valid @RequestBody DoctorRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -28,16 +30,19 @@ public class DoctorController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<List<DoctorResponse>> getAllDoctors() {
         return ResponseEntity.ok(doctorService.getAllDoctors());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<DoctorResponse> getDoctorById(@PathVariable Long id) {
         return ResponseEntity.ok(doctorService.getDoctorById(id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DoctorResponse> updateDoctor(
             @PathVariable Long id,
             @Valid @RequestBody DoctorRequest request) {
@@ -45,6 +50,7 @@ public class DoctorController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteDoctor(@PathVariable Long id) {
         doctorService.deleteDoctor(id);
         return ResponseEntity.noContent().build();
