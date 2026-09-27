@@ -1,5 +1,7 @@
 package com.project.MediFlow.Controller;
 
+import com.project.MediFlow.Dtos.AuthResponse;
+import com.project.MediFlow.Dtos.LoginRequest;
 import com.project.MediFlow.Dtos.RegisterRequest;
 import com.project.MediFlow.Service.AuthService;
 import jakarta.validation.Valid;
@@ -24,5 +26,12 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body("User registered successfully");
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody LoginRequest request) {
+
+        return ResponseEntity.ok(authService.login(request));
     }
 }
