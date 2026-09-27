@@ -25,8 +25,10 @@ public class PatientAuthorizationService {
         );
     }
 
-    public boolean canCreatePatient(String email) {
-        return email != null && !email.isBlank();
+    public boolean canCreatePatient(String patientEmail, String authenticatedEmail) {
+        return patientEmail != null
+                && authenticatedEmail != null
+                && patientEmail.equalsIgnoreCase(authenticatedEmail);
     }
 
     public boolean canCreateAppointment(Long patientId, String email) {
