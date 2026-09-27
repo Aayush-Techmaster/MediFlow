@@ -5,6 +5,7 @@ import com.project.MediFlow.Dtos.AppointmentResponse;
 import com.project.MediFlow.Dtos.RescheduleAppointmentRequest;
 import com.project.MediFlow.Service.AppointmentService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,7 @@ public class AppointmentController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('PATIENT', 'RECEPTIONIST', 'ADMIN') and (hasRole('RECEPTIONIST') or hasRole('ADMIN') or @patientAuthorization.canCreateAppointment(#request.patientId, authentication.name))")
     public ResponseEntity<AppointmentResponse> createAppointment(
             @Valid @RequestBody AppointmentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -29,31 +31,37 @@ public class AppointmentController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('DOCTOR', 'RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<List<AppointmentResponse>> getAllAppointments() {
         return ResponseEntity.ok(appointmentService.getAllAppointments());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'RECEPTIONIST', 'ADMIN') or (hasRole('PATIENT') and @patientAuthorization.isOwnAppointment(#id, authentication.name))")
     public ResponseEntity<AppointmentResponse> getAppointmentById(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.getAppointmentById(id));
     }
 
     @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN') or (hasRole('PATIENT') and @patientAuthorization.isOwnAppointment(#id, authentication.name))")
     public ResponseEntity<AppointmentResponse> cancelAppointment(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.cancelAppointment(id));
     }
 
     @PatchMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<AppointmentResponse> confirmAppointment(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.confirmAppointment(id));
     }
 
     @PatchMapping("/{id}/complete")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     public ResponseEntity<AppointmentResponse> completeAppointment(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.completeAppointment(id));
     }
 
     @PatchMapping("/{id}/reschedule")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<AppointmentResponse> rescheduleAppointment(
             @PathVariable Long id,
             @Valid @RequestBody RescheduleAppointmentRequest request) {
