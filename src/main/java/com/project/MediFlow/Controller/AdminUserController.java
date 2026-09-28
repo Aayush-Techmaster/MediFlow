@@ -1,5 +1,6 @@
 package com.project.MediFlow.Controller;
 
+import com.project.MediFlow.Dtos.AdminUserResponse;
 import com.project.MediFlow.Dtos.UpdateUserRoleRequest;
 import com.project.MediFlow.Dtos.UserRoleResponse;
 import com.project.MediFlow.Service.AdminUserService;
@@ -9,12 +10,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<AdminUserResponse>> getAllUsers() {
+        return ResponseEntity.ok(adminUserService.getAllUsers());
+    }
 
     @PatchMapping("/{userId}/role")
     @PreAuthorize("hasRole('ADMIN')")
