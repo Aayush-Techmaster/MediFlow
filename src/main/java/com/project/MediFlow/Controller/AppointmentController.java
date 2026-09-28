@@ -23,7 +23,7 @@ public class AppointmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('PATIENT', 'RECEPTIONIST', 'ADMIN') and (hasRole('RECEPTIONIST') or hasRole('ADMIN') or @patientAuthorization.canCreateAppointment(#request.patientId, authentication.name))")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<AppointmentResponse> createAppointment(
             @Valid @RequestBody AppointmentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
