@@ -1,8 +1,6 @@
 package com.project.MediFlow.Controller;
 
-import com.project.MediFlow.Dtos.AdminUserResponse;
-import com.project.MediFlow.Dtos.UpdateUserRoleRequest;
-import com.project.MediFlow.Dtos.UserRoleResponse;
+import com.project.MediFlow.Dtos.*;
 import com.project.MediFlow.Service.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +33,20 @@ public class AdminUserController {
                 adminUserService.updateUserRole(
                         userId,
                         request.getRole()
+                )
+        );
+    }
+
+    @PatchMapping("/{userId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserStatusResponse> updateUserStatus(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateUserStatusRequest request) {
+
+        return ResponseEntity.ok(
+                adminUserService.updateUserStatus(
+                        userId,
+                        request.getEnabled()
                 )
         );
     }

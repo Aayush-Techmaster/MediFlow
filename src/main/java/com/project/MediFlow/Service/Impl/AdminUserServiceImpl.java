@@ -2,6 +2,7 @@ package com.project.MediFlow.Service.Impl;
 
 import com.project.MediFlow.Dtos.AdminUserResponse;
 import com.project.MediFlow.Dtos.UserRoleResponse;
+import com.project.MediFlow.Dtos.UserStatusResponse;
 import com.project.MediFlow.Enum.Role;
 import com.project.MediFlow.Exception.ResourceNotFoundException;
 import com.project.MediFlow.Repository.DoctorRepository;
@@ -70,6 +71,29 @@ public class AdminUserServiceImpl implements AdminUserService {
                 savedUser.getId(),
                 savedUser.getEmail(),
                 savedUser.getRole(),
+                savedUser.isEnabled()
+        );
+    }
+    @Override
+    @Transactional
+    public UserStatusResponse updateUserStatus(Long userId, boolean enabled) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with id: " + userId));
+
+        if (SYSTEM_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail())) {
+            throw new IllegalArgumentException(
+                    "System admin account cannot be disabled");
+        }
+
+        user.setEnabled(enabled);
+
+        User savedUser = userRepository.save(user);
+
+        return new UserStatusResponse(
+                savedUser.getId(),
+                savedUser.getEmail(),
                 savedUser.isEnabled()
         );
     }
