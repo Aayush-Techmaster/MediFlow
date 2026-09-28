@@ -16,6 +16,8 @@ import com.project.MediFlow.entities.Appointment;
 import com.project.MediFlow.entities.Doctor;
 import com.project.MediFlow.entities.Patient;
 import jakarta.transaction.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -150,6 +152,22 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .toList();
     }
 
+
+    @Override
+    public List<AppointmentResponse> getAppointmentsForDoctor(String email) {
+
+        return appointmentRepository
+                .findAllWithPatientAndDoctorByDoctorEmail(email)
+                .stream()
+                .map(appointment ->
+                        mapToResponse(
+                                appointment,
+                                appointment.getPatient(),
+                                appointment.getDoctor()
+                        )
+                )
+                .toList();
+    }
 
     @Override
     public AppointmentResponse getAppointmentById(Long id) {
