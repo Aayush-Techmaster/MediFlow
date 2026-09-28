@@ -1,5 +1,6 @@
 package com.project.MediFlow.Service.Impl;
 
+import com.project.MediFlow.Dtos.AdminUserResponse;
 import com.project.MediFlow.Dtos.UserRoleResponse;
 import com.project.MediFlow.Enum.Role;
 import com.project.MediFlow.Exception.ResourceNotFoundException;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
@@ -19,6 +22,20 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserRepository userRepository;
     private final DoctorRepository doctorRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AdminUserResponse> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(user -> new AdminUserResponse(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getRole(),
+                        user.isEnabled()
+                ))
+                .toList();
+    }
 
     @Override
     @Transactional
