@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class AdminUserServiceImpl {
+public class AdminUserServiceImpl implements AdminUserService {
 
     private static final String SYSTEM_ADMIN_EMAIL = "admin@mediflow.com";
 
@@ -20,13 +20,9 @@ public class AdminUserServiceImpl {
     @Override
     @Transactional
     public Object updateUserRole(Long userId, Role role) {
-
         User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found with id: " + userId
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with id: " + userId));
 
         if (role == null) {
             throw new IllegalArgumentException("Role is required");
@@ -34,18 +30,15 @@ public class AdminUserServiceImpl {
 
         if (SYSTEM_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail())) {
             throw new IllegalArgumentException(
-                    "System admin role cannot be changed"
-            );
+                    "System admin role cannot be changed");
         }
 
         if (role == Role.ADMIN) {
             throw new IllegalArgumentException(
-                    "ADMIN role cannot be assigned through this endpoint"
-            );
+                    "ADMIN role cannot be assigned through this endpoint");
         }
 
         user.setRole(role);
-
         User savedUser = userRepository.save(user);
 
         return new Object() {
