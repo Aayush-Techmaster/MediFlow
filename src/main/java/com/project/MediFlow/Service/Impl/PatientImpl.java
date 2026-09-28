@@ -10,6 +10,9 @@ import com.project.MediFlow.Repository.PatientRepository;
 import com.project.MediFlow.Service.PatientService;
 import com.project.MediFlow.entities.Patient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +25,17 @@ public class PatientImpl implements PatientService {
 
     @Override
     public PatientResponse createPatient(PatientRequest request) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String authenticatedEmail = authentication.getName();
+
+        if (!authenticatedEmail.equalsIgnoreCase(request.getEmail())) {
+            throw new AccessDeniedException(
+                    "You can only create your own patient profile"
+            );
+        }
+
         if (patientRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already exists.");
         }
