@@ -21,6 +21,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             String email
     );
 
+    boolean existsByIdAndDoctor_Email(
+            Long appointmentId,
+            String email
+    );
+
     boolean existsByDoctor_IdAndAppointmentDateTimeAndIdNot(
             Long doctorId,
             LocalDateTime appointmentDateTime,
@@ -46,6 +51,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         """)
     Optional<Appointment> findByIdWithPatientAndDoctor(
             @Param("id") Long id
+    );
+
+    @Query("""
+        SELECT a
+        FROM Appointment a
+        JOIN FETCH a.patient
+        JOIN FETCH a.doctor
+        WHERE LOWER(a.doctor.email) = LOWER(:email)
+        """)
+    List<Appointment> findAllWithPatientAndDoctorByDoctorEmail(
+            @Param("email") String email
     );
 }
 
