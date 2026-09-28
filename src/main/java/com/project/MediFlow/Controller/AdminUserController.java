@@ -1,7 +1,7 @@
 package com.project.MediFlow.Controller;
 
 import com.project.MediFlow.Dtos.UpdateUserRoleRequest;
-import com.project.MediFlow.Enum.Role;
+import com.project.MediFlow.Dtos.UserRoleResponse;
 import com.project.MediFlow.Service.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ public class AdminUserController {
 
     @PatchMapping("/{userId}/role")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateUserRole(
+    public ResponseEntity<UserRoleResponse> updateUserRole(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRoleRequest request) {
 
