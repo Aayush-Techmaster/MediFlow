@@ -12,6 +12,8 @@ public interface AppointmentService {
 
     List<AppointmentResponse> getAllAppointments();
 
+    List<AppointmentResponse> getAppointmentsForDoctor(String email);
+
     AppointmentResponse getAppointmentById(Long id);
 
     AppointmentResponse cancelAppointment(Long id);
