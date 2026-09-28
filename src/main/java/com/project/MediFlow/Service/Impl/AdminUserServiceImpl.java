@@ -3,6 +3,7 @@ package com.project.MediFlow.Service.Impl;
 import com.project.MediFlow.Dtos.UserRoleResponse;
 import com.project.MediFlow.Enum.Role;
 import com.project.MediFlow.Exception.ResourceNotFoundException;
+import com.project.MediFlow.Repository.DoctorRepository;
 import com.project.MediFlow.Repository.UserRepository;
 import com.project.MediFlow.Service.AdminUserService;
 import com.project.MediFlow.entities.User;
@@ -17,6 +18,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private static final String SYSTEM_ADMIN_EMAIL = "admin@mediflow.com";
 
     private final UserRepository userRepository;
+    private final DoctorRepository doctorRepository;
 
     @Override
     @Transactional
@@ -37,6 +39,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (role == Role.ADMIN) {
             throw new IllegalArgumentException(
                     "ADMIN role cannot be assigned through this endpoint");
+        }
+
+        if (role == Role.DOCTOR && !doctorRepository.existsByEmail(user.getEmail())) {
+            throw new IllegalArgumentException(
+                    "Doctor profile must be created before assigning DOCTOR role");
         }
 
         user.setRole(role);
