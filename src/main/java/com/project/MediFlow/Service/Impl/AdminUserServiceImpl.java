@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class AdminUserServiceImpl implements AdminUserService {
+public class AdminUserServiceImpl {
+
+    private static final String SYSTEM_ADMIN_EMAIL = "admin@mediflow.com";
 
     private final UserRepository userRepository;
 
@@ -28,6 +30,12 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         if (role == null) {
             throw new IllegalArgumentException("Role is required");
+        }
+
+        if (SYSTEM_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail())) {
+            throw new IllegalArgumentException(
+                    "System admin role cannot be changed"
+            );
         }
 
         if (role == Role.ADMIN) {
