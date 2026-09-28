@@ -37,7 +37,7 @@ public class AppointmentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'RECEPTIONIST', 'ADMIN') or (hasRole('PATIENT') and @patientAuthorization.isOwnAppointment(#id, authentication.name))")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN') or (hasRole('DOCTOR') and @doctorAuthorization.isOwnAppointment(#id, authentication.name)) or (hasRole('PATIENT') and @patientAuthorization.isOwnAppointment(#id, authentication.name))")
     public ResponseEntity<AppointmentResponse> getAppointmentById(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.getAppointmentById(id));
     }
@@ -49,19 +49,19 @@ public class AppointmentController {
     }
 
     @PatchMapping("/{id}/confirm")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'RECEPTIONIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN') or (hasRole('DOCTOR') and @doctorAuthorization.isOwnAppointment(#id, authentication.name))")
     public ResponseEntity<AppointmentResponse> confirmAppointment(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.confirmAppointment(id));
     }
 
     @PatchMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('DOCTOR') and @doctorAuthorization.isOwnAppointment(#id, authentication.name))")
     public ResponseEntity<AppointmentResponse> completeAppointment(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.completeAppointment(id));
     }
 
     @PatchMapping("/{id}/reschedule")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'RECEPTIONIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN') or (hasRole('DOCTOR') and @doctorAuthorization.isOwnAppointment(#id, authentication.name))")
     public ResponseEntity<AppointmentResponse> rescheduleAppointment(
             @PathVariable Long id,
             @Valid @RequestBody RescheduleAppointmentRequest request) {
