@@ -30,8 +30,4 @@ public class PatientAuthorizationService {
                 && authenticatedEmail != null
                 && patientEmail.equalsIgnoreCase(authenticatedEmail);
     }
-
-    public boolean canCreateAppointment(Long patientId, String email) {
-        return isOwnPatient(patientId, email);
-    }
 }
