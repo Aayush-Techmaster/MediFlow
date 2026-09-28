@@ -1,5 +1,6 @@
 package com.project.MediFlow.Service.Impl;
 
+import com.project.MediFlow.Dtos.UserRoleResponse;
 import com.project.MediFlow.Enum.Role;
 import com.project.MediFlow.Exception.ResourceNotFoundException;
 import com.project.MediFlow.Repository.UserRepository;
@@ -19,7 +20,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    public Object updateUserRole(Long userId, Role role) {
+    public UserRoleResponse updateUserRole(Long userId, Role role) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "User not found with id: " + userId));
@@ -41,11 +42,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setRole(role);
         User savedUser = userRepository.save(user);
 
-        return new Object() {
-            public final Long id = savedUser.getId();
-            public final String email = savedUser.getEmail();
-            public final Role assignedRole = savedUser.getRole();
-            public final boolean enabled = savedUser.isEnabled();
-        };
+        return new UserRoleResponse(
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getRole(),
+                savedUser.isEnabled()
+        );
     }
 }
