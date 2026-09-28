@@ -20,7 +20,7 @@ public class PatientController {
     private final PatientService patientService;
 
     @PostMapping
-    @PreAuthorize("hasRole('PATIENT') and @patientAuthorization.canCreatePatient(#request.email, authentication.name)")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<PatientResponse> createPatient(
             @Valid @RequestBody PatientRequest request) {
         PatientResponse response = patientService.createPatient(request);
