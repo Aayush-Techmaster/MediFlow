@@ -140,6 +140,17 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public List<AppointmentResponse> getAllAppointments() {
 
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isDoctor = authentication.getAuthorities().stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_DOCTOR"));
+
+        if (isDoctor) {
+            return getAppointmentsForDoctor(authentication.getName());
+        }
+
         return appointmentRepository.findAllWithPatientAndDoctor()
                 .stream()
                 .map(appointment ->
