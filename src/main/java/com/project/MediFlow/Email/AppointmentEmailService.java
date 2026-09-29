@@ -4,6 +4,8 @@ import com.project.MediFlow.RabbitMQ.Event.AppointmentEvent;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 
 @Service
 public class AppointmentEmailService {
@@ -14,6 +16,11 @@ public class AppointmentEmailService {
         this.mailSender = mailSender;
     }
 
+    @Retryable(
+            retryFor = Exception.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 2000)
+    )
     public void sendAppointmentNotification(AppointmentEvent event) {
 
         SimpleMailMessage message = new SimpleMailMessage();
@@ -102,7 +109,7 @@ public class AppointmentEmailService {
                 break;
         }
 
-        mailSender.send(message);
+
 
         System.out.println(
                 "Appointment email sent to: "
