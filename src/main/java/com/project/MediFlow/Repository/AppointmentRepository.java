@@ -11,13 +11,11 @@ import com.project.MediFlow.Enum.NotificationStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import com.project.MediFlow.Enum.AppointmentStatus;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
-    boolean existsByDoctor_IdAndAppointmentDateTime(
-            Long doctorId,
-            LocalDateTime appointmentDateTime
-    );
+
 
     boolean existsByIdAndPatient_Email(
             Long appointmentId,
@@ -29,10 +27,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             String email
     );
 
-    boolean existsByDoctor_IdAndAppointmentDateTimeAndIdNot(
+    boolean existsByDoctor_IdAndAppointmentDateTimeAndStatusNot(
             Long doctorId,
             LocalDateTime appointmentDateTime,
-            Long id
+            AppointmentStatus status
+    );
+
+    boolean existsByDoctor_IdAndAppointmentDateTimeAndIdNotAndStatusNot(
+            Long doctorId,
+            LocalDateTime appointmentDateTime,
+            Long appointmentId,
+            AppointmentStatus status
     );
 
     @Query("""
@@ -79,6 +84,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("status") NotificationStatus status
     );
 
+    @Query("""
+    SELECT COUNT(a) > 0
+    FROM Appointment a
+    WHERE a.doctor.id = :doctorId
+      AND a.appointmentDateTime = :appointmentDateTime
+      AND a.status <> :status
+    """)
+    boolean existsActiveAppointment(
+            @Param("doctorId") Long doctorId,
+            @Param("appointmentDateTime") LocalDateTime appointmentDateTime,
+            @Param("status") AppointmentStatus status
+    );
 
 }
 

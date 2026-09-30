@@ -66,14 +66,13 @@ public class AppointmentServiceImpl implements AppointmentService {
                         )
                 );
 
-        // 3. Check doctor's availability
-        if (appointmentRepository
-                .existsByDoctor_IdAndAppointmentDateTime(
-                        request.getDoctorId(),
-                        request.getAppointmentDateTime())) {
+        if (appointmentRepository.existsByDoctor_IdAndAppointmentDateTimeAndStatusNot(
+                request.getDoctorId(),
+                request.getAppointmentDateTime(),
+                AppointmentStatus.CANCELLED)) {
 
             throw new DuplicateResourceException(
-                    "Doctor is already booked for this time."
+                    "Doctor already has an appointment at this time"
             );
         }
 
@@ -107,9 +106,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         try {
             appointmentProducer.publishAppointmentEvent(event);
 
-            savedAppointment.setNotificationStatus(
-                    NotificationStatus.SENT
-            );
+
+
 
             appointmentRepository.save(savedAppointment);
 
@@ -424,10 +422,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         boolean doctorAlreadyBooked =
                 appointmentRepository
-                        .existsByDoctor_IdAndAppointmentDateTimeAndIdNot(
+                        .existsByDoctor_IdAndAppointmentDateTimeAndIdNotAndStatusNot(
                                 appointment.getDoctor().getId(),
                                 newAppointmentDateTime,
-                                id
+                                id,
+                                AppointmentStatus.CANCELLED
                         );
 
         if (doctorAlreadyBooked) {
