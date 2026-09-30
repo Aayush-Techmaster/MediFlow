@@ -1,6 +1,7 @@
 package com.project.MediFlow.entities;
 
 import com.project.MediFlow.Enum.AppointmentStatus;
+import com.project.MediFlow.Enum.NotificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.validator.constraints.UniqueElements;
@@ -48,4 +49,9 @@ public class Appointment {
 
     @Enumerated(EnumType.STRING)
     private AppointmentStatus status;
+
+    @Enumerated(EnumType.STRING)
+    private NotificationStatus notificationStatus = NotificationStatus.PENDING;
+
+    
 }

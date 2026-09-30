@@ -1,29 +1,24 @@
 package com.project.MediFlow.RabbitMQ.Consumer;
 
 import com.project.MediFlow.Email.AppointmentEmailService;
+import com.project.MediFlow.Enum.NotificationStatus;
 import com.project.MediFlow.RabbitMQ.Event.AppointmentEvent;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.stereotype.Component;
-
-
-import com.project.MediFlow.RabbitMQ.Event.AppointmentEvent;
-import com.project.MediFlow.Email.AppointmentEmailService;
+import com.project.MediFlow.Repository.AppointmentRepository;
+import com.project.MediFlow.entities.Appointment;
 import com.rabbitmq.client.Channel;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+
 @Component
+@RequiredArgsConstructor
 public class AppointmentNotificationWorker2 {
 
     private final AppointmentEmailService appointmentEmailService;
-
-    public AppointmentNotificationWorker2(
-            AppointmentEmailService appointmentEmailService) {
-
-        this.appointmentEmailService = appointmentEmailService;
-    }
+    private final AppointmentRepository appointmentRepository;
 
     @RabbitListener(queues = "appointment.notification.queue")
     public void consumeAppointmentEvent(
@@ -31,23 +26,32 @@ public class AppointmentNotificationWorker2 {
             Channel channel,
             Message message) throws IOException {
 
-        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        long deliveryTag =
+                message.getMessageProperties().getDeliveryTag();
 
         try {
-
-            System.out.println(
-                    "WORKER 2 received appointment event: "
-                            + event.getEventType()
-            );
-
+            // 1. Send the email
             appointmentEmailService.sendAppointmentNotification(event);
 
-            // Success → ACK
-            channel.basicAck(deliveryTag, false);
+            // 2. Email was successfully sent
+            // Mark notification as SENT
+            Appointment appointment = appointmentRepository
+                    .findById(event.getAppointmentId())
+                    .orElseThrow(() ->
+                            new IllegalStateException(
+                                    "Appointment not found with id: "
+                                            + event.getAppointmentId()
+                            )
+                    );
 
-            System.out.println(
-                    "WORKER 2: Message acknowledged"
+            appointment.setNotificationStatus(
+                    NotificationStatus.SENT
             );
+
+            appointmentRepository.save(appointment);
+
+            // 3. ACK only after email + database update succeed
+            channel.basicAck(deliveryTag, false);
 
         } catch (Exception e) {
 
@@ -56,8 +60,12 @@ public class AppointmentNotificationWorker2 {
                             + e.getMessage()
             );
 
-            // Failure → NACK
-            channel.basicNack(deliveryTag, false, false);
+            // Reject message -> DLQ
+            channel.basicNack(
+                    deliveryTag,
+                    false,
+                    false
+            );
         }
     }
 }

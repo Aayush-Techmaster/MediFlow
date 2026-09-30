@@ -4,6 +4,7 @@ import com.project.MediFlow.Dtos.AppointmentRequest;
 import com.project.MediFlow.Dtos.AppointmentResponse;
 import com.project.MediFlow.Enum.AppointmentEventType;
 import com.project.MediFlow.Enum.AppointmentStatus;
+import com.project.MediFlow.Enum.NotificationStatus;
 import com.project.MediFlow.Exception.ResourceNotFoundException;
 import com.project.MediFlow.Exception.DuplicateResourceException;
 import com.project.MediFlow.RabbitMQ.Event.AppointmentEvent;
@@ -86,6 +87,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .bookedAt(LocalDateTime.now())
                 .reason(request.getReason())
                 .status(AppointmentStatus.SCHEDULED)
+                .notificationStatus(NotificationStatus.PENDING)
                 .build();
 
         Appointment savedAppointment =
@@ -102,9 +104,28 @@ public class AppointmentServiceImpl implements AppointmentService {
                 null
         );
 
-        appointmentProducer.publishAppointmentEvent(event);
-        // 5. Return response
-        return mapToResponse(savedAppointment, patient, doctor);
+        try {
+            appointmentProducer.publishAppointmentEvent(event);
+
+            savedAppointment.setNotificationStatus(
+                    NotificationStatus.SENT
+            );
+
+            appointmentRepository.save(savedAppointment);
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "RabbitMQ unavailable. Notification remains PENDING for appointment "
+                            + savedAppointment.getId()
+            );
+        }
+
+        return mapToResponse(
+                savedAppointment,
+                patient,
+                doctor
+        );
     }
 
 
