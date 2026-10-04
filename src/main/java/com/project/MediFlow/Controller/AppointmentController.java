@@ -4,17 +4,14 @@ import com.project.MediFlow.Dtos.AppointmentRequest;
 import com.project.MediFlow.Dtos.AppointmentResponse;
 import com.project.MediFlow.Dtos.RescheduleAppointmentRequest;
 import com.project.MediFlow.Service.AppointmentService;
-import jakarta.validation.Valid;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
 import com.project.MediFlow.dto.PatientAppointmentRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -74,73 +71,53 @@ public class AppointmentController {
                 id, request.getAppointmentDateTime()));
     }
 
-
     @PostMapping("/request")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<AppointmentResponse> requestAppointment(
             @Valid @RequestBody PatientAppointmentRequest request,
             Authentication authentication) {
-
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(
-                        appointmentService.requestAppointment(
-                                request,
-                                authentication.getName()
-                        )
-                );
+                .body(appointmentService.requestAppointment(
+                        request,
+                        authentication.getName()
+                ));
     }
 
     @GetMapping("/pending")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<List<AppointmentResponse>> getPendingAppointments() {
-        return ResponseEntity.ok(
-                appointmentService.getPendingAppointments()
-        );
+        return ResponseEntity.ok(appointmentService.getPendingAppointments());
     }
 
     @PatchMapping("/{id}/accept")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<AppointmentResponse> acceptAppointment(
             @PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                appointmentService.acceptAppointment(id)
-        );
+        return ResponseEntity.ok(appointmentService.acceptAppointment(id));
     }
 
     @PatchMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<AppointmentResponse> rejectAppointment(
             @PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                appointmentService.rejectAppointment(id)
-        );
+        return ResponseEntity.ok(appointmentService.rejectAppointment(id));
     }
 
     @GetMapping("/my")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<List<AppointmentResponse>> getMyAppointments(
             Authentication authentication) {
-
-        return ResponseEntity.ok(
-                appointmentService.getMyAppointments(
-                        authentication.getName()
-                )
-        );
+        return ResponseEntity.ok(appointmentService.getMyAppointments(
+                authentication.getName()
+        ));
     }
 
     @GetMapping("/doctor/my")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<List<AppointmentResponse>> getMyDoctorAppointments(
             Authentication authentication) {
-
-        return ResponseEntity.ok(
-                appointmentService.getAppointmentsForDoctor(
-                        authentication.getName()
-                )
-        );
+        return ResponseEntity.ok(appointmentService.getAppointmentsForDoctor(
+                authentication.getName()
+        ));
     }
-
-
 }
