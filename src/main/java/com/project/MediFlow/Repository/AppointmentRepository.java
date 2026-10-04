@@ -1,18 +1,19 @@
 package com.project.MediFlow.Repository;
 
+import com.project.MediFlow.Enum.AppointmentStatus;
 import com.project.MediFlow.Enum.NotificationStatus;
 import com.project.MediFlow.entities.Appointment;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import com.project.MediFlow.Enum.AppointmentStatus;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
-
-
 
     boolean existsByIdAndPatient_Email(
             Long appointmentId,
@@ -45,8 +46,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         """)
     List<Appointment> findAllWithPatientAndDoctor();
 
-
-
     @Query("""
         SELECT a
         FROM Appointment a
@@ -70,6 +69,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     );
 
     List<Appointment> findByNotificationStatus(NotificationStatus notificationStatus);
+
     @Query("""
        SELECT a
        FROM Appointment a
@@ -79,6 +79,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
        """)
     List<Appointment> findPendingNotificationsWithDetails(
             @Param("status") NotificationStatus status
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+       SELECT a
+       FROM Appointment a
+       WHERE a.id = :id
+       """)
+    Optional<Appointment> findByIdForNotificationUpdate(
+            @Param("id") Long id
     );
 
     @Query("""
@@ -94,9 +104,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("freeStatuses") List<AppointmentStatus> freeStatuses
     );
 
-
     List<Appointment> findByStatus(AppointmentStatus status);
-
 
     @Query("""
        SELECT a
@@ -108,6 +116,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByStatusWithPatientAndDoctor(
             @Param("status") AppointmentStatus status
     );
+
     @Query("""
        SELECT a
        FROM Appointment a
@@ -119,9 +128,4 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findAllByPatientEmailWithDetails(
             @Param("email") String email
     );
-
-    
 }
-
-
-
