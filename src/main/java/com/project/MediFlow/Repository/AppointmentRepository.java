@@ -24,17 +24,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             String email
     );
 
-    boolean existsByDoctor_IdAndAppointmentDateTimeAndStatusNot(
+    boolean existsByDoctor_IdAndAppointmentDateTimeAndStatusNotIn(
             Long doctorId,
             LocalDateTime appointmentDateTime,
-            AppointmentStatus status
+            List<AppointmentStatus> freeStatuses
     );
 
-    boolean existsByDoctor_IdAndAppointmentDateTimeAndIdNotAndStatusNot(
+    boolean existsByDoctor_IdAndAppointmentDateTimeAndIdNotAndStatusNotIn(
             Long doctorId,
             LocalDateTime appointmentDateTime,
             Long appointmentId,
-            AppointmentStatus status
+            List<AppointmentStatus> freeStatuses
     );
 
     @Query("""
