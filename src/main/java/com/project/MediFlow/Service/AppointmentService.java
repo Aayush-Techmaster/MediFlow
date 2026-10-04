@@ -2,6 +2,7 @@ package com.project.MediFlow.Service;
 
 import com.project.MediFlow.Dtos.AppointmentRequest;
 import com.project.MediFlow.Dtos.AppointmentResponse;
+import com.project.MediFlow.dto.PatientAppointmentRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,8 +27,17 @@ public interface AppointmentService {
             Long id,
             LocalDateTime newAppointmentDateTime
     );
-//
-//    AppointmentResponse updateAppointment(Long id, AppointmentRequest request);
-//
-//    void deleteAppointment(Long id);
+
+    AppointmentResponse requestAppointment(
+            PatientAppointmentRequest request,
+            String patientEmail
+    );
+
+    List<AppointmentResponse> getPendingAppointments();
+
+    AppointmentResponse acceptAppointment(Long id);
+
+    AppointmentResponse rejectAppointment(Long id);
+
+    List<AppointmentResponse> getMyAppointments(String patientEmail);
 }

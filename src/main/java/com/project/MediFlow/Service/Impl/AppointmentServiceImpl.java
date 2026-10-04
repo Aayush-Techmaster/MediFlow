@@ -5,21 +5,23 @@ import com.project.MediFlow.Dtos.AppointmentResponse;
 import com.project.MediFlow.Enum.AppointmentEventType;
 import com.project.MediFlow.Enum.AppointmentStatus;
 import com.project.MediFlow.Enum.NotificationStatus;
-import com.project.MediFlow.Exception.ResourceNotFoundException;
 import com.project.MediFlow.Exception.DuplicateResourceException;
+import com.project.MediFlow.Exception.ResourceNotFoundException;
 import com.project.MediFlow.RabbitMQ.Event.AppointmentEvent;
 import com.project.MediFlow.RabbitMQ.Producer.AppointmentProducer;
 import com.project.MediFlow.Repository.AppointmentRepository;
 import com.project.MediFlow.Repository.DoctorRepository;
 import com.project.MediFlow.Repository.PatientRepository;
 import com.project.MediFlow.Service.AppointmentService;
+import com.project.MediFlow.dto.PatientAppointmentRequest;
 import com.project.MediFlow.entities.Appointment;
 import com.project.MediFlow.entities.Doctor;
 import com.project.MediFlow.entities.Patient;
-import jakarta.transaction.Transactional;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,7 +37,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     public AppointmentServiceImpl(
             AppointmentRepository appointmentRepository,
             PatientRepository patientRepository,
-            DoctorRepository doctorRepository, AppointmentProducer appointmentProducer) {
+            DoctorRepository doctorRepository,
+            AppointmentProducer appointmentProducer) {
 
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
@@ -43,8 +46,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         this.appointmentProducer = appointmentProducer;
     }
 
+    // =========================================================
+    // RECEPTIONIST / ADMIN - CREATE APPOINTMENT
+    // =========================================================
 
     @Override
+    @Transactional
     public AppointmentResponse createAppointment(
             AppointmentRequest request) {
 
@@ -66,6 +73,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         )
                 );
 
+        // 3. Check doctor's availability
         if (appointmentRepository.existsByDoctor_IdAndAppointmentDateTimeAndStatusNot(
                 request.getDoctorId(),
                 request.getAppointmentDateTime(),
@@ -80,9 +88,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment appointment = Appointment.builder()
                 .patient(patient)
                 .doctor(doctor)
-                .appointmentDateTime(
-                        request.getAppointmentDateTime()
-                )
+                .appointmentDateTime(request.getAppointmentDateTime())
                 .bookedAt(LocalDateTime.now())
                 .reason(request.getReason())
                 .status(AppointmentStatus.SCHEDULED)
@@ -92,6 +98,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
 
+        // 5. Create event
         AppointmentEvent event = new AppointmentEvent(
                 AppointmentEventType.APPOINTMENT_CREATED,
                 savedAppointment.getId(),
@@ -103,16 +110,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                 null
         );
 
+        // 6. Publish notification
         try {
             appointmentProducer.publishAppointmentEvent(event);
 
-
-
-
-            appointmentRepository.save(savedAppointment);
-
         } catch (Exception e) {
-
             System.out.println(
                     "RabbitMQ unavailable. Notification remains PENDING for appointment "
                             + savedAppointment.getId()
@@ -125,6 +127,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                 doctor
         );
     }
+
+    // =========================================================
+    // MAP ENTITY TO RESPONSE
+    // =========================================================
 
 
     public AppointmentResponse mapToResponse(
@@ -155,16 +161,22 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .build();
     }
 
-    @Transactional
+    // =========================================================
+    // GET ALL APPOINTMENTS
+    // =========================================================
+
     @Override
+    @Transactional
     public List<AppointmentResponse> getAllAppointments() {
 
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
-        boolean isDoctor = authentication.getAuthorities().stream()
+        boolean isDoctor = authentication.getAuthorities()
+                .stream()
                 .anyMatch(authority ->
-                        authority.getAuthority().equals("ROLE_DOCTOR"));
+                        authority.getAuthority().equals("ROLE_DOCTOR")
+                );
 
         if (isDoctor) {
             return getAppointmentsForDoctor(authentication.getName());
@@ -182,9 +194,13 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .toList();
     }
 
+    // =========================================================
+    // GET DOCTOR APPOINTMENTS
+    // =========================================================
 
     @Override
-    public List<AppointmentResponse> getAppointmentsForDoctor(String email) {
+    public List<AppointmentResponse> getAppointmentsForDoctor(
+            String email) {
 
         return appointmentRepository
                 .findAllWithPatientAndDoctorByDoctorEmail(email)
@@ -199,16 +215,22 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .toList();
     }
 
+    // =========================================================
+    // GET APPOINTMENT BY ID
+    // =========================================================
+
     @Override
     public AppointmentResponse getAppointmentById(Long id) {
 
-        Appointment appointment = appointmentRepository
-                .findByIdWithPatientAndDoctor(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Appointment not found with id: " + id
-                        )
-                );
+        Appointment appointment =
+                appointmentRepository
+                        .findByIdWithPatientAndDoctor(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Appointment not found with id: "
+                                                + id
+                                )
+                        );
 
         return mapToResponse(
                 appointment,
@@ -216,15 +238,23 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointment.getDoctor()
         );
     }
-    @Transactional
+
+    // =========================================================
+    // CANCEL APPOINTMENT
+    // =========================================================
+
     @Override
+    @Transactional
     public AppointmentResponse cancelAppointment(Long id) {
 
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Appointment not found with id: " + id
-                        ));
+        Appointment appointment =
+                appointmentRepository.findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Appointment not found with id: "
+                                                + id
+                                )
+                        );
 
         if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
             throw new IllegalStateException(
@@ -243,7 +273,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
 
-        // Reuse existing relationships
         Patient patient = savedAppointment.getPatient();
         Doctor doctor = savedAppointment.getDoctor();
 
@@ -266,32 +295,25 @@ public class AppointmentServiceImpl implements AppointmentService {
                 doctor
         );
     }
-    @Transactional
 
+    // =========================================================
+    // CONFIRM APPOINTMENT
+    // =========================================================
     @Override
+    @Transactional
     public AppointmentResponse confirmAppointment(Long id) {
 
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Appointment not found with id: " + id
-                        ));
+        Appointment appointment =
+                appointmentRepository.findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Appointment not found with id: " + id
+                                )
+                        );
 
-        if (appointment.getStatus() == AppointmentStatus.CONFIRMED) {
+        if (appointment.getStatus() != AppointmentStatus.SCHEDULED) {
             throw new IllegalStateException(
-                    "Appointment is already confirmed"
-            );
-        }
-
-        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
-            throw new IllegalStateException(
-                    "Cancelled appointment cannot be confirmed"
-            );
-        }
-
-        if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
-            throw new IllegalStateException(
-                    "Completed appointment cannot be confirmed"
+                    "Only SCHEDULED appointments can be confirmed"
             );
         }
 
@@ -300,7 +322,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
 
-        // Reuse existing relationships
         Patient patient = savedAppointment.getPatient();
         Doctor doctor = savedAppointment.getDoctor();
 
@@ -315,7 +336,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 null
         );
 
-        // Publish confirmation event
         appointmentProducer.publishAppointmentEvent(event);
 
         return mapToResponse(
@@ -325,31 +345,24 @@ public class AppointmentServiceImpl implements AppointmentService {
         );
     }
 
-    @Transactional
+    // =========================================================
+    // COMPLETE APPOINTMENT
+    // =========================================================
     @Override
+    @Transactional
     public AppointmentResponse completeAppointment(Long id) {
 
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Appointment not found with id: " + id
-                        ));
+        Appointment appointment =
+                appointmentRepository.findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Appointment not found with id: " + id
+                                )
+                        );
 
-        if (appointment.getStatus() == AppointmentStatus.SCHEDULED) {
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
             throw new IllegalStateException(
-                    "Scheduled appointment cannot be completed"
-            );
-        }
-
-        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
-            throw new IllegalStateException(
-                    "Cancelled appointment cannot be completed"
-            );
-        }
-
-        if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
-            throw new IllegalStateException(
-                    "Appointment is already completed"
+                    "Only CONFIRMED appointments can be completed"
             );
         }
 
@@ -358,7 +371,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
 
-        // Reuse existing relationships
         Patient patient = savedAppointment.getPatient();
         Doctor doctor = savedAppointment.getDoctor();
 
@@ -373,7 +385,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 null
         );
 
-        // Publish completion event
         appointmentProducer.publishAppointmentEvent(event);
 
         return mapToResponse(
@@ -382,19 +393,24 @@ public class AppointmentServiceImpl implements AppointmentService {
                 doctor
         );
     }
+    // =========================================================
+    // RESCHEDULE APPOINTMENT
+    // =========================================================
 
-
-    @Transactional
     @Override
+    @Transactional
     public AppointmentResponse rescheduleAppointment(
             Long id,
             LocalDateTime newAppointmentDateTime) {
 
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Appointment not found with id: " + id
-                        ));
+        Appointment appointment =
+                appointmentRepository.findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Appointment not found with id: "
+                                                + id
+                                )
+                        );
 
         if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
             throw new IllegalStateException(
@@ -435,16 +451,16 @@ public class AppointmentServiceImpl implements AppointmentService {
             );
         }
 
-        // Store old time before changing it
         LocalDateTime oldAppointmentDateTime =
                 appointment.getAppointmentDateTime();
 
-        appointment.setAppointmentDateTime(newAppointmentDateTime);
+        appointment.setAppointmentDateTime(
+                newAppointmentDateTime
+        );
 
         Appointment savedAppointment =
                 appointmentRepository.save(appointment);
 
-        // Reuse existing relationships
         Patient patient = savedAppointment.getPatient();
         Doctor doctor = savedAppointment.getDoctor();
 
@@ -459,7 +475,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 newAppointmentDateTime
         );
 
-        // Publish reschedule event
         appointmentProducer.publishAppointmentEvent(event);
 
         return mapToResponse(
@@ -469,6 +484,169 @@ public class AppointmentServiceImpl implements AppointmentService {
         );
     }
 
+    // =========================================================
+    // PATIENT - REQUEST APPOINTMENT
+    // =========================================================
+
+    @Override
+    @Transactional
+    public AppointmentResponse requestAppointment(
+            PatientAppointmentRequest request,
+            String patientEmail) {
+
+        // 1. Find patient using JWT email
+        Patient patient =
+                patientRepository.findByEmail(patientEmail)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Patient not found"
+                                )
+                        );
+
+        // 2. Find doctor
+        Doctor doctor =
+                doctorRepository.findById(request.getDoctorId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Doctor not found"
+                                )
+                        );
+
+        // 3. Check whether slot is occupied
+        boolean slotTaken =
+                appointmentRepository.existsActiveAppointment(
+                        request.getDoctorId(),
+                        request.getAppointmentDateTime(),
+                        List.of(
+                                AppointmentStatus.CANCELLED,
+                                AppointmentStatus.REJECTED
+                        )
+                );
+
+        if (slotTaken) {
+            throw new DuplicateResourceException(
+                    "Doctor already has an appointment at this time"
+            );
+        }
+
+        // 4. Create PENDING appointment request
+        Appointment appointment = Appointment.builder()
+                .patient(patient)
+                .doctor(doctor)
+                .appointmentDateTime(
+                        request.getAppointmentDateTime()
+                )
+                .bookedAt(LocalDateTime.now())
+                .reason(request.getReason())
+                .status(AppointmentStatus.PENDING)
+                .notificationStatus(NotificationStatus.PENDING)
+                .build();
+
+        // 5. Save
+        Appointment savedAppointment =
+                appointmentRepository.save(appointment);
+
+        // 6. Return response
+        return mapToResponse(
+                savedAppointment,
+                patient,
+                doctor
+        );
+    }
 
 
-}
+        @Override
+        @Transactional(readOnly = true)
+        public List<AppointmentResponse> getPendingAppointments() {
+
+            List<Appointment> pendingAppointments =
+                    appointmentRepository.findByStatusWithPatientAndDoctor(
+                            AppointmentStatus.PENDING
+                    );
+
+            return pendingAppointments.stream()
+                    .map(pendingAppointment ->
+                            mapToResponse(
+                                    pendingAppointment,
+                                    pendingAppointment.getPatient(),
+                                    pendingAppointment.getDoctor()
+                            )
+                    )
+                    .toList();
+        }
+
+
+    @Override
+    @Transactional
+    public AppointmentResponse acceptAppointment(Long id) {
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Appointment not found"));
+
+        if (appointment.getStatus() != AppointmentStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Only PENDING appointments can be accepted"
+            );
+        }
+
+        appointment.setStatus(AppointmentStatus.SCHEDULED);
+
+        Appointment savedAppointment =
+                appointmentRepository.save(appointment);
+
+        return mapToResponse(
+                savedAppointment,
+                savedAppointment.getPatient(),
+                savedAppointment.getDoctor()
+        );
+    }
+
+
+    @Override
+    @Transactional
+    public AppointmentResponse rejectAppointment(Long id) {
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Appointment not found"));
+
+        if (appointment.getStatus() != AppointmentStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Only PENDING appointments can be rejected"
+            );
+        }
+
+        appointment.setStatus(AppointmentStatus.REJECTED);
+
+        Appointment savedAppointment =
+                appointmentRepository.save(appointment);
+
+        return mapToResponse(
+                savedAppointment,
+                savedAppointment.getPatient(),
+                savedAppointment.getDoctor()
+        );
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> getMyAppointments(String patientEmail) {
+
+        List<Appointment> appointments =
+                appointmentRepository.findAllByPatientEmailWithDetails(
+                        patientEmail
+                );
+
+        return appointments.stream()
+                .map(appointment ->
+                        mapToResponse(
+                                appointment,
+                                appointment.getPatient(),
+                                appointment.getDoctor()
+                        )
+                )
+                .toList();
+    }
+    }

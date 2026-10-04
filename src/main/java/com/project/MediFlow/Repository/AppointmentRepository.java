@@ -5,9 +5,6 @@ import com.project.MediFlow.entities.Appointment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import com.project.MediFlow.Enum.NotificationStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -89,14 +86,41 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     FROM Appointment a
     WHERE a.doctor.id = :doctorId
       AND a.appointmentDateTime = :appointmentDateTime
-      AND a.status <> :status
+      AND a.status NOT IN :freeStatuses
     """)
     boolean existsActiveAppointment(
             @Param("doctorId") Long doctorId,
             @Param("appointmentDateTime") LocalDateTime appointmentDateTime,
-            @Param("status") AppointmentStatus status
+            @Param("freeStatuses") List<AppointmentStatus> freeStatuses
     );
 
+
+    List<Appointment> findByStatus(AppointmentStatus status);
+
+
+    @Query("""
+       SELECT a
+       FROM Appointment a
+       JOIN FETCH a.patient
+       JOIN FETCH a.doctor
+       WHERE a.status = :status
+       """)
+    List<Appointment> findByStatusWithPatientAndDoctor(
+            @Param("status") AppointmentStatus status
+    );
+    @Query("""
+       SELECT a
+       FROM Appointment a
+       JOIN FETCH a.patient
+       JOIN FETCH a.doctor
+       WHERE LOWER(a.patient.email) = LOWER(:email)
+       ORDER BY a.appointmentDateTime DESC
+       """)
+    List<Appointment> findAllByPatientEmailWithDetails(
+            @Param("email") String email
+    );
+
+    
 }
 
 
