@@ -1,16 +1,13 @@
 package com.project.MediFlow.RabbitMQ.Consumer;
 
 import com.project.MediFlow.Email.AppointmentEmailService;
-import com.project.MediFlow.Enum.NotificationStatus;
 import com.project.MediFlow.RabbitMQ.Event.AppointmentEvent;
-import com.project.MediFlow.Repository.AppointmentRepository;
-import com.project.MediFlow.entities.Appointment;
+import com.project.MediFlow.Service.NotificationStateService;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 
@@ -19,9 +16,8 @@ import java.io.IOException;
 public class AppointmentNotificationWorker1 {
 
     private final AppointmentEmailService appointmentEmailService;
-    private final AppointmentRepository appointmentRepository;
+    private final NotificationStateService notificationStateService;
 
-    @Transactional
     @RabbitListener(queues = "appointment.notification.queue")
     public void consumeAppointmentEvent(
             AppointmentEvent event,
@@ -29,43 +25,43 @@ public class AppointmentNotificationWorker1 {
             Message message) throws IOException {
 
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        Long appointmentId = event.getAppointmentId();
 
         try {
-            Appointment appointment = appointmentRepository
-                    .findById(event.getAppointmentId())
-                    .orElseThrow(() -> new IllegalStateException(
-                            "Appointment not found with id: " + event.getAppointmentId()));
+            // Atomically claim the notification in its own committed transaction.
+            boolean claimed = notificationStateService.claimNotification(appointmentId);
 
-            if (appointment.getNotificationStatus() == NotificationStatus.SENT
-                    || appointment.getNotificationStatus() == NotificationStatus.PROCESSING) {
+            if (!claimed) {
+                // Already SENT or currently PROCESSING. Nothing more to do.
                 channel.basicAck(deliveryTag, false);
                 return;
             }
 
-            appointment.setNotificationStatus(NotificationStatus.PROCESSING);
-            appointmentRepository.saveAndFlush(appointment);
-
+            // External side effect happens after PROCESSING is committed.
             appointmentEmailService.sendAppointmentNotification(event);
 
-            appointment.setNotificationStatus(NotificationStatus.SENT);
-            appointmentRepository.save(appointment);
+            // Persist SENT in a separate transaction.
+            notificationStateService.markSent(appointmentId);
+
             channel.basicAck(deliveryTag, false);
 
         } catch (Exception e) {
             try {
-                Appointment appointment = appointmentRepository
-                        .findById(event.getAppointmentId())
-                        .orElse(null);
-                if (appointment != null) {
-                    appointment.setNotificationStatus(NotificationStatus.FAILED);
-                    appointmentRepository.save(appointment);
-                }
+                // Persist FAILED even though the RabbitMQ message will be rejected.
+                notificationStateService.markFailed(appointmentId);
             } catch (Exception statusException) {
-                System.out.println("WORKER 1: Failed to update notification status: "
-                        + statusException.getMessage());
+                System.out.println(
+                        "WORKER 1: Failed to persist FAILED status: "
+                                + statusException.getMessage()
+                );
             }
 
-            System.out.println("WORKER 1: Failed to process message: " + e.getMessage());
+            System.out.println(
+                    "WORKER 1: Failed to process message: "
+                            + e.getMessage()
+            );
+
+            // Preserve the existing DLQ flow.
             channel.basicNack(deliveryTag, false, false);
         }
     }
