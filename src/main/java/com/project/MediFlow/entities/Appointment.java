@@ -4,7 +4,6 @@ import com.project.MediFlow.Enum.AppointmentStatus;
 import com.project.MediFlow.Enum.NotificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.validator.constraints.UniqueElements;
 
 import java.time.LocalDateTime;
 
@@ -14,27 +13,15 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(
-        name = "appointments",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_doctor_appointment_time",
-                        columnNames = {
-                                "doctor_id",
-                                "appointment_date_time"
-                        }
-                )
-        }
-)
+@Table(name = "appointments")
 public class Appointment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="patient_id")
+    @JoinColumn(name = "patient_id")
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -52,6 +39,4 @@ public class Appointment {
 
     @Enumerated(EnumType.STRING)
     private NotificationStatus notificationStatus = NotificationStatus.PENDING;
-
-    
 }
